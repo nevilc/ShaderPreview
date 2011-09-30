@@ -1,0 +1,55 @@
+Copyright (c) 2011 Colin Neville
+
+This software is provided 'as-is', without any express or implied
+warranty. In no event will the authors be held liable for any damages
+arising from the use of this software.
+
+Permission is granted to anyone to use this software for any purpose,
+including commercial applications, and to alter it and redistribute it
+freely, subject to the following restrictions:
+
+   1. The origin of this software must not be misrepresented; you must not
+   claim that you wrote the original software. If you use this software
+   in a product, an acknowledgment in the product documentation would be
+   appreciated but is not required.
+
+   2. Altered source versions must be plainly marked as such, and must not be
+   misrepresented as being the original software.
+
+   3. This notice may not be removed or altered from any source
+   distribution.
+   
+   
+This program is designed for rapidly testing and viewing GLSL fragment shaders, while allowing basic lua scripting to mimic in application/game events.
+
+The most basic way to run this program is 
+ executable-name image-name shader-name
+where image-name is the filename of an image in a common file format, and shader-name, the filename of an uncompiled glsl shader. More options can be appended for additional functionality. 
+
+Shaders can passed uniforms (essentially variables constant for the duration of a single frame) either via command line or by a lua script. This program supports three kinds of uniforms: floats, vectors (vec2, vec3, and vec4), and samplers (command line only currently).
+To set a uniform on the command line, the format is as follows:
+ executable-name image-name shader-name --float uniform-name=uniform-value
+ executable-name image-name shader-name --vec2 uniform-name=uniform-x,uniform-y
+ executable-name image-name shader-name --vec3 uniform-name=uniform-x,uniform-y,uniform-z
+ executable-name image-name shader-name --vec4 uniform-name=uniform-x,uniform-y,uniform-z,uniform-w
+ executable-name image-name shader-name --sampler uniform-name=sampler-name
+, where uniform-name is the name of the uniform variable in shader-name. In the case of --sampler, sampler-name is the filename of the image to be used as the sampler uniform.
+
+Command line uniforms are strictly constant. For dynamic uniforms, a lua script must be used. To use a lua script, use the command line option --lua, followed by the filename of the script. 
+ executeable-name image-name shader-name --lua script-name
+
+lua scripts must be set up in a specific way. All initialization takes place in the global namespace, and repeated actions should be placed in a function called 'main' which takes a single argument, 'delta', the number of seconds that have elapsed since the last frame. All uniforms should be placed in a table called 'uniforms'. The library 'glsl' optionally provides glsl-like vectors with swizzling functionality. The default script which provides the uniforms 'frame' and 'timer' is shown below:
+
+require 'glsl'
+
+uniforms = {
+	frame = 0,
+	timer = 0
+}
+
+function main(delta)
+	uniforms.frame = uniforms.frame + 1
+	uniforms.timer = uniforms.timer + delta
+end
+
+Other self-explanatory command line options include width, height, bitdepth, background (vec3-style syntax for background color), scale (vec2-style syntax for sprite scale), rotation
