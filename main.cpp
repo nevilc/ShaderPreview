@@ -442,6 +442,7 @@ int main(int argc, char** argv){
                 //glViewport(0, 0, ev.Size.Width, ev.Size.Height);
 			}
         }
+		float delta = mainwin.GetFrameTime();
 
 		// STACK: ...
 		lua_getglobal(lua_interp, "main");
@@ -450,9 +451,10 @@ int main(int argc, char** argv){
 			std::cerr << "lua global value 'main' must be a function.\n";
 		}
 		// STACK: ... [FUNCTION main]
-		lua_call(lua_interp, 0, 0);
+		lua_pushnumber(lua_interp, lua_Number(delta));
+		// STACK: ... [FUNCTION main] [NUMBER delta]
+		lua_call(lua_interp, 1, 0);
 		// STACK: ...
-
 		process_uniforms(lua_interp, shader);
 
 		mainwin.Clear(sf::Color(int(255 * clo_background.x), int(255 * clo_background.y), int(255 * clo_background.z)));
@@ -462,7 +464,7 @@ int main(int argc, char** argv){
 
 		// This feels very overboard
 		std::stringstream ssfps;
-		ssfps << int(1 / mainwin.GetFrameTime());
+		ssfps << int(1 / delta);
 
 		fps.SetString(sf::String(ssfps.str()));
 
