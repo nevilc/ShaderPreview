@@ -1,5 +1,6 @@
 #include <string>
 #include <vector>
+#include <map>
 #include <exception>
 
 #include <SFML/System.hpp>
@@ -17,6 +18,11 @@ extern "C"{
 #include "Vector4.hpp"
 
 #include "clo_stream.h"
+
+//const std::string font_filename("PROGGYCLEANSZ.FON");
+const std::string font_filename("BMcube.TTF");
+
+std::map<std::string, sf::Image> image_cache;
 
 bool process_uniform_number(lua_State* lua_interp, sf::Shader& shader, std::string& uniform_name){
 	// value is a number, set it as a parameter immediately
@@ -171,14 +177,30 @@ bool process_uniform_vector(lua_State* lua_interp, sf::Shader& shader, std::stri
 	return true;
 }
 
+bool process_uniform_string(lua_State* lua_interp, sf::Shader& shader, std::string& uniform_name){
+	// value is a string, load the image file and set as the sampler uniform
+	// STACK: ... [TABLE uniforms] [STRING key] [STRING value]
+	
+	//std::cout << uniform_name << ": " << lua_tostring(lua_interp, -1);
+	
+	std::string filename = lua_tostring(lua_interp, -1);
+	std::map<std::string, sf::Image>::iterator i = image_cache.find(filename);
+	if (i == image_cache.end()) {
+		image_cache[filename].LoadFromFile(filename);
+	}
+	shader.SetTexture(uniform_name, image_cache[filename]);
+
+	return true;
+}
+
 bool process_uniforms(lua_State* lua_interp, sf::Shader& shader){
 	// Set shader parameters (uniforms)
 	// STACK: ... 
-	lua_getglobal(lua_interp, "uniforms");
+	lua_getglobal(lua_interp, "uniform");
 	// STACK: ... [DATA uniforms]
 
 	if (!lua_istable(lua_interp, -1)){
-		std::cerr << "lua variable 'uniforms' must be a table of numbers and/or vecXs\n";
+		std::cerr << "lua variable 'uniform' must be a table of numbers, strings and/or vecXs\n";
 	}
 		
 	// STACK: ... [TABLE uniforms]
@@ -216,6 +238,10 @@ bool process_uniforms(lua_State* lua_interp, sf::Shader& shader){
 			}
 			lua_pop(lua_interp, 1);
 			// STACK: ... [TABLE uniforms] [STRING key] [TABLE value]
+
+			break;
+		case LUA_TSTRING:
+			process_uniform_string(lua_interp, shader, uniform_name);
 
 			break;
 		default:
@@ -340,17 +366,6 @@ int main(int argc, char** argv){
 			return 1;
 		}
 		
-		/*
-		for (std::vector<std::string>::iterator i = clo_shader.begin(); i != clo_shader.end(); ++i){
-			sf::Shader s;
-			if (!s.LoadFromFile(*i)){
-				//ERROR shader could not be opened/found
-				std::cerr << "Could not find or load shader file\n";
-				return 1;
-			}
-			s.SetCurrentTexture("image");
-			shader.push_back(s);
-		}*/
 		if (!shader.LoadFromFile(clo_shader)){
 			//ERROR shader could not be opened/found
 			std::cerr << "Could not find or load shader file\n";
@@ -411,8 +426,8 @@ int main(int argc, char** argv){
 	}
 
 	sf::Font font;
-	if (!font.LoadFromFile("BMcube.TTF")){
-		std::cerr << "Could not find or load BMcube.TTF\n";
+	if (!font.LoadFromFile(font_filename)){
+		std::cerr << "Could not find or load " << font_filename << '\n';
 	}
 	sf::Text fps;
 	fps.SetFont(font);
